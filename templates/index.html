@@ -1,0 +1,68 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MiniApp</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: Arial; padding: 10px; }
+    .task { border: 1px solid #ddd; padding:10px; margin:8px 0; border-radius:6px; }
+    .btn { padding:8px 12px; background:#2b9; color:white; border:none; border-radius:6px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h3>MiniApp - Nhiệm vụ</h3>
+  <div id="userInfo">Đang tải thông tin...</div>
+
+  <div id="tasks">
+    {% for t in tasks %}
+      <div class="task">
+        <strong>{{ t['title'] }}</strong><br>
+        <button class="btn" onclick="openTask('{{ t['id'] }}')">Mở nhiệm vụ</button>
+      </div>
+    {% else %}
+      <p>Chưa có nhiệm vụ.</p>
+    {% endfor %}
+  </div>
+
+  <hr>
+  <h4>Hoàn thành nhiệm vụ: Dán link gốc vào đây</h4>
+  <input id="task_id" placeholder="Task ID" style="width:100%; margin-bottom:6px;" />
+  <input id="pasted" placeholder="Dán link gốc" style="width:100%; margin-bottom:6px;" />
+  <button class="btn" onclick="submitLink()">Nộp link</button>
+
+  <div id="result"></div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.expand();
+
+  const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
+  document.getElementById('userInfo').innerText = user ? `Xin chào ${user.first_name} (id=${user.id})` : 'Không có thông tin user.';
+
+  function openTask(taskId) {
+    // Mở trang task trong trình duyệt (mở trong Telegram webview)
+    window.open('{{ domain }}' + '/task/' + taskId, '_blank');
+  }
+
+  async function submitLink() {
+    const tid = document.getElementById('task_id').value.trim();
+    const pasted = document.getElementById('pasted').value.trim();
+    if (!tid || !pasted) { alert('Cần task id và link'); return; }
+    const payload = {
+      telegram_id: user ? user.id : 'unknown',
+      task_id: tid,
+      pasted_link: pasted
+    };
+    const res = await fetch('/api/submit_link', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    document.getElementById('result').innerText = JSON.stringify(j);
+  }
+</script>
+</body>
+</html>
